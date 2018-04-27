@@ -1,0 +1,116 @@
+--Q1 create forgin keys
+
+ALTER TABLE ONLY postgraphile.reorder ADD CONSTRAINT fk_reordet_prodid FOREIGN KEY (prod_id) REFERENCES postgraphile.products(prod_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY postgraphile.inventory ADD CONSTRAINT fk_inventory_prodid FOREIGN KEY (prod_id) REFERENCES postgraphile.products(prod_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY postgraphile.orderlines ADD CONSTRAINT fk_orderline_orderlineid FOREIGN KEY (prod_id) REFERENCES postgraphile.products(prod_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY postgraphile.orderlines ADD CONSTRAINT fk_orderline_orderid FOREIGN KEY (orderid) REFERENCES postgraphile.orders(orderid) ON DELETE CASCADE;
+
+ALTER TABLE ONLY postgraphile.cust_hist ADD CONSTRAINT fk_custhist_prodid FOREIGN KEY (prod_id) REFERENCES postgraphile.products(prod_id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY postgraphile.cust_hist ADD CONSTRAINT fk_custhist_orderid FOREIGN KEY (orderid) REFERENCES postgraphile.orders(orderid) ON DELETE CASCADE;
+
+ALTER TABLE ONLY postgraphile.products ADD CONSTRAINT fk_products_category FOREIGN KEY (category) REFERENCES postgraphile.categories (category) ON DELETE CASCADE;
+
+--Q2
+create function customers_profile(customers customers) returns text as $$ select customers.firstname || ',' || customers.lastname || ',' || customers.age || ',' || customers.gender $$ language sql stable;
+
+query{
+  allCustomers{
+    edges{
+      node{
+        profile
+      }
+    }
+  }
+}
+
+--Q3
+query{
+	allCategories{
+    edges{
+      node{
+        productsByCategory{
+          edges{
+            node{
+              inventoriesByProdId{
+                edges{
+                  node{
+                    prodId
+                    quanInStock
+                    sales
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+--Q4
+--Creating new order
+mutation createOrder($orderInput: CreateOrderInput!, $ordelineInput: CreateOrderlineInput!, $custHistInput: CreateCustHistInput!) {
+  createOrder(input: $orderInput) {
+    order {
+      orderid
+      orderdate
+      customerid
+      netamount
+      tax
+      totalamount
+    }
+  }
+  createOrderline(input: $ordelineInput) {
+    orderline {
+      orderlineid
+      orderid
+      prodId
+      quantity
+      orderdate
+    }
+  }
+  createCustHist(input: $custHistInput) {
+    custHist {
+      customerid
+      orderid
+      prodId
+    }
+  }
+}
+{
+  "orderInput": {
+    "order": {
+      "orderid": 12006,
+      "orderdate":"2018-02-22",
+      "customerid":7888,
+      "netamount":"600",
+      "tax":"100",
+      "totalamount": "7000"
+    }
+  },
+  
+  "ordelineInput": {
+    "orderline":{
+      "orderlineid": 1,
+      "orderid": 12006,
+      "prodId": 2801,
+      "quantity": 5,
+      "orderdate": "2018-02-22"
+    }
+  }, 
+  
+    "custHistInput":{ 
+    "custHist": {
+      "customerid": 7888,
+      "orderid": 12006,
+      "prodId": 2801
+    }  
+  }
+}
+
+--Q5
